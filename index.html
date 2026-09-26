@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Side by Side — English reading for Korean speakers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF2F4; --surface:#FFFFFF; --ink:#1E2A4A; --muted:#5E6A82;
+  --celadon:#6F9E8F; --celadon-soft:#DCEBE5; --line:#D4DCE3; --word:#F3D9A4; --err:#B3413A;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#141A2B; --surface:#1C2438; --ink:#E6EAF2; --muted:#9AA5BC;
+    --celadon:#8CC2B1; --celadon-soft:#23392F; --line:#2C3650; --word:#6B5426; --err:#E58A83;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141A2B; --surface:#1C2438; --ink:#E6EAF2; --muted:#9AA5BC;
+  --celadon:#8CC2B1; --celadon-soft:#23392F; --line:#2C3650; --word:#6B5426; --err:#E58A83;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Literata",Georgia,"Times New Roman",serif;line-height:1.6;
+  padding-bottom:100px;-webkit-text-size-adjust:100%}
+.ko{font-family:"Gowun Batang","Apple SD Gothic Neo","Malgun Gothic",serif}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:2px solid var(--celadon);outline-offset:2px;border-radius:4px}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+
+.picker{display:flex;gap:8px;overflow-x:auto;padding:16px 0 12px;scrollbar-width:none}
+.picker::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);
+  padding:8px 14px;border-radius:999px;font-size:14px;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip.add{border-style:dashed;color:var(--ink);background:none}
+
+header.lesson{padding:20px 0 8px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}
+header.lesson h1{margin:0;font-size:clamp(26px,6vw,44px);line-height:1.12;font-weight:700;letter-spacing:-.01em;overflow-wrap:anywhere}
+header.lesson .kotitle{font-size:clamp(18px,3.5vw,24px);color:var(--muted)}
+header.lesson .del{margin-left:auto;background:none;border:none;color:var(--muted);font-size:14px;text-decoration:underline}
+
+.tools{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:8px 0 16px;
+  border-bottom:1px solid var(--line);font-size:14px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:none;background:none;padding:6px 12px;font-size:14px;color:var(--ink)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--celadon-soft);font-weight:600}
+.linkbtn{background:none;border:none;color:var(--ink);text-decoration:underline;font-size:14px;padding:6px 0;margin-left:auto}
+.tools select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:210px;font-size:14px}
+
+.pager{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 0 0;font-size:14px}
+.pager button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;font-size:14px}
+.pager .where{text-align:center;color:var(--muted);min-width:0}
+.pager .where input{width:4.2em;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px;font-size:14px;color:var(--ink)}
+.pager .chap{display:block;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw}
+
+.transbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:14px;padding:12px 14px;
+  border:1px dashed var(--celadon);border-radius:10px;font-size:14px}
+.transbar .msg{flex:1 1 220px;color:var(--muted)}
+.transbar .msg.err{color:var(--err)}
+.transbar button{border:none;background:var(--celadon);color:#fff;border-radius:8px;padding:8px 14px;font-size:14px;font-weight:600}
+.transbar button.ghost{background:none;color:var(--ink);border:1px solid var(--line);font-weight:400}
+.transbar label{display:flex;gap:6px;align-items:center;color:var(--ink)}
+
+.hint{font-size:13px;color:var(--muted);padding:10px 0 0;margin:0}
+.colhead{display:grid;grid-template-columns:40px 1fr 1fr;gap:12px;padding:14px 0 6px;font-size:13px;color:var(--muted)}
+.rows{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:40px 1fr 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);
+  align-items:start;transition:background-color .2s}
+.row.active{background:var(--celadon-soft);border-radius:10px;border-bottom-color:transparent;margin:0 -10px;padding:14px 10px}
+.play{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0}
+.row.active .play{background:var(--celadon);border-color:var(--celadon);color:#fff}
+.play svg{width:14px;height:14px}
+.en{font-size:19px;line-height:1.55;overflow-wrap:anywhere}
+.en .w{border-radius:3px;cursor:pointer;transition:background-color .12s}
+.en .w:hover{background:var(--line)}
+.en .w.on{background:var(--word)}
+.kocell{font-size:17px;line-height:1.7;color:var(--muted);overflow-wrap:anywhere}
+.kocell.pending,.en.pending{font-size:14px;font-style:italic;opacity:.7;color:var(--muted)}
+.row.active .kocell{color:var(--ink)}
+.cell{transition:filter .2s}
+body[data-mode="hideKo"] .kocell:not(.revealed):not(.pending),
+body[data-mode="hideEn"] .en:not(.revealed):not(.pending){filter:blur(6px);cursor:pointer;user-select:none}
+@media (max-width:600px){
+  .row,.colhead{grid-template-columns:34px 1fr 1fr;gap:10px}
+  .en{font-size:16px}.kocell{font-size:15px}
+  .play{width:32px;height:32px}
+}
+
+.player{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));z-index:5}
+.player .inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.big{width:52px;height:52px;border-radius:50%;border:none;background:var(--ink);color:var(--paper);display:grid;place-items:center;flex:0 0 auto}
+.big svg{width:20px;height:20px}
+.nav{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:none;display:grid;place-items:center;flex:0 0 auto}
+.nav svg{width:16px;height:16px}
+.status{flex:1;min-width:0;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toggle{border:1px solid var(--line);background:none;border-radius:8px;padding:8px 10px;font-size:13px;flex:0 0 auto}
+.toggle[aria-pressed="true"]{background:var(--celadon-soft);border-color:var(--celadon);font-weight:600}
+@media (max-width:480px){.status{display:none}.player{padding-left:10px;padding-right:10px}.player .inner{justify-content:space-between;gap:6px}
+  .big{width:46px;height:46px}.nav{width:34px;height:34px}#speed button{padding:6px 7px;font-size:13px}.toggle{padding:7px 8px}}
+
+dialog{border:none;border-radius:14px;padding:0;width:min(660px,calc(100% - 24px));max-height:calc(100% - 40px);background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(20,26,43,.5)}
+.dlg{padding:20px;display:grid;gap:14px}
+dialog h2{margin:0;font-size:22px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;display:grid;gap:8px;justify-items:center}
+.drop.over{border-color:var(--celadon);background:var(--celadon-soft)}
+.drop strong{font-size:17px}
+.drop small{color:var(--muted);font-size:13px}
+.drop .pick{border:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:10px 18px;font-size:15px}
+.progress{font-size:14px;color:var(--muted);min-height:1.2em;margin:0}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
+dialog label{font-size:14px;color:var(--muted);display:grid;gap:4px}
+dialog input[type=text],dialog textarea{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:16px;width:100%}
+dialog textarea{min-height:120px;resize:vertical;line-height:1.5}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.two{grid-template-columns:1fr}}
+.err{color:var(--err);font-size:14px;min-height:1em;margin:0}
+.actions{display:flex;justify-content:flex-end;gap:8px}
+.btn{border:1px solid var(--line);background:none;border-radius:8px;padding:10px 16px}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.note{font-size:13px;color:var(--muted);margin:0}
+.notice{background:var(--word);color:var(--ink);padding:10px 14px;border-radius:8px;font-size:14px;margin-top:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body data-mode="both">
+<div class="wrap">
+  <nav class="picker" id="picker" aria-label="Lessons and books"></nav>
+  <div id="nosupport" class="notice" hidden>This browser can't read text aloud. Try Chrome, Safari, or Edge to hear the English.</div>
+  <header class="lesson">
+    <h1 id="title"></h1>
+    <span class="kotitle ko" id="kotitle"></span>
+    <button class="del" id="del" hidden>Delete</button>
+  </header>
+  <div class="tools">
+    <div class="seg" role="group" aria-label="What to show" id="modes">
+      <button data-mode="both" aria-pressed="true">Show both</button>
+      <button data-mode="hideKo" aria-pressed="false">Hide <span class="ko">한국어</span></button>
+      <button data-mode="hideEn" aria-pressed="false">Hide English</button>
+    </div>
+    <label>Voice <select id="voice" aria-label="English voice"></select></label>
+    <button class="linkbtn" id="setBtn" type="button">Translation settings</button>
+  </div>
+
+  <div class="pager" id="pager" hidden>
+    <button id="pgPrev">‹ Previous</button>
+    <div class="where"><span class="chap" id="pgChap"></span>Page <input id="pgInput" type="number" min="1" inputmode="numeric" aria-label="Go to page"> of <span id="pgTotal"></span></div>
+    <button id="pgNext">Next ›</button>
+  </div>
+
+  <div class="transbar" id="transbar" hidden>
+    <span class="msg" id="transMsg"></span>
+    <button id="transBtn">Translate this page</button>
+    <label id="autoWrap"><input type="checkbox" id="autoT"> Translate automatically</label>
+  </div>
+
+  <p class="hint ko">단어를 누르면 발음을 들을 수 있어요. 가려진 문장은 눌러서 확인하세요.</p>
+  <div class="colhead" aria-hidden="true"><span></span><span>English</span><span class="ko">한국어</span></div>
+  <ol class="rows" id="rows"></ol>
+</div>
+
+<div class="player">
+  <div class="inner">
+    <button class="nav" id="prev" aria-label="Previous sentence"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+    <button class="big" id="playall" aria-label="Play all"></button>
+    <button class="nav" id="next" aria-label="Next sentence"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+    <span class="status" id="status">Press play to listen</span>
+    <div class="seg" role="group" aria-label="Speed" id="speed">
+      <button data-rate="0.7">0.7×</button>
+      <button data-rate="0.85">0.85×</button>
+      <button data-rate="1">1×</button>
+    </div>
+    <button class="toggle" id="repeat" aria-pressed="false" title="Repeat the current sentence for shadowing">Repeat</button>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg">
+    <h2>Add a book or text</h2>
+    <div class="drop" id="drop">
+      <strong>Upload a PDF, EPUB or TXT file</strong>
+      <small>English or Korean books both work. The translation appears beside each sentence. <span class="ko">영어 책은 한국어로, 한국어 책은 영어로 번역돼요.</span></small>
+      <button class="pick" id="pickBtn" type="button">Choose file</button>
+      <input type="file" id="fileIn" accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain" hidden>
+    </div>
+    <p class="progress" id="progress" aria-live="polite"></p>
+    <div class="or">or paste text</div>
+    <form id="addform" class="dlg" style="padding:0">
+      <label>Title <input type="text" id="fTitle" maxlength="80" placeholder="e.g. News article"></label>
+      <div class="two">
+        <label>Text in English or <span class="ko">한국어</span> <textarea id="fEn" placeholder="Paste any text. It's split into sentences and translated for you."></textarea></label>
+        <label>Your own translation (optional), one sentence per line <textarea id="fKo" class="ko" placeholder="비워 두면 자동으로 번역돼요."></textarea></label>
+      </div>
+      <p class="err" id="fErr"></p>
+      <p class="note">Books and texts you add are saved in this browser. Scanned PDFs (photos of pages) have no text to read.</p>
+      <div class="actions">
+        <button type="button" class="btn" id="cancel">Cancel</button>
+        <button type="submit" class="btn primary">Save text</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="setDlg">
+  <form class="dlg" id="setForm">
+    <h2>Translation settings</h2>
+    <div id="keyArea" class="dlg" style="padding:0">
+      <label>Gemini API key <input type="password" id="sKey" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
+      <p class="note">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. It's saved only in this browser and sent only to Google.</p>
+    </div>
+    <p class="note" id="proxyNote" hidden>This site translates through its own server, so you don't need a key.</p>
+    <label>Model <input type="text" id="sModel" spellcheck="false"></label>
+    <p class="err" id="sErr"></p>
+    <div class="actions">
+      <button type="button" class="btn" id="sRemove">Remove key</button>
+      <button type="button" class="btn" id="sTest">Test</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/* =====================================================================
+   SETTINGS — edit these two lines if you deploy the optional proxy.
+   PROXY_URL: your Cloudflare Worker URL (see worker.js). When it's set,
+   nobody needs their own key and the key box is hidden.
+   DEFAULT_MODEL: any Gemini model id. "gemini-flash-latest" always
+   points to Google's newest Flash model.
+   ===================================================================== */
+const CONFIG = {
+  PROXY_URL: "",
+  DEFAULT_MODEL: "gemini-flash-latest"
+};
+
+const BUILTIN = [
+ {id:"cafe",title:"At the café",ko:"카페에서",lines:[
+  ["Hi, can I get a medium iced latte, please?","안녕하세요, 아이스 라떼 미디엄 사이즈로 한 잔 주시겠어요?"],
+  ["Sure. Would you like oat milk or regular milk?","네. 귀리 우유로 드릴까요, 일반 우유로 드릴까요?"],
+  ["Regular milk is fine, thanks.","일반 우유면 괜찮아요, 감사합니다."],
+  ["Is that for here or to go?","드시고 가세요, 아니면 가져가세요?"],
+  ["To go, please.","가져갈게요."],
+  ["That'll be five fifty.","5달러 50센트입니다."],
+  ["Can I pay by card?","카드로 계산해도 되나요?"],
+  ["Of course. Your drink will be ready in a few minutes.","물론이죠. 음료는 몇 분 안에 준비될 거예요."]]},
+ {id:"intro",title:"Introducing yourself",ko:"자기소개",lines:[
+  ["Hi, I'm Minji. Nice to meet you.","안녕하세요, 저는 민지예요. 만나서 반가워요."],
+  ["I'm from Busan, but I live in Seoul now.","저는 부산 출신인데, 지금은 서울에 살아요."],
+  ["I work as a designer at a small company.","저는 작은 회사에서 디자이너로 일해요."],
+  ["In my free time, I like hiking and watching movies.","시간이 날 때는 등산하고 영화 보는 걸 좋아해요."],
+  ["I've been studying English for about two years.","영어는 2년 정도 공부하고 있어요."],
+  ["I want to speak more naturally when I travel.","여행할 때 더 자연스럽게 말하고 싶어요."],
+  ["What about you? What do you do?","당신은요? 무슨 일을 하세요?"]]},
+ {id:"directions",title:"Asking for directions",ko:"길 묻기",lines:[
+  ["Excuse me, could you help me?","실례합니다, 좀 도와주시겠어요?"],
+  ["I'm looking for the nearest subway station.","가장 가까운 지하철역을 찾고 있어요."],
+  ["Go straight for two blocks and turn left at the bank.","두 블록 직진하다가 은행에서 왼쪽으로 도세요."],
+  ["It's across the street from a big bookstore.","큰 서점 건너편에 있어요."],
+  ["How long does it take to walk there?","거기까지 걸어가면 얼마나 걸려요?"],
+  ["About ten minutes. You can't miss it.","10분 정도요. 쉽게 찾으실 거예요."],
+  ["Thank you so much!","정말 감사합니다!"]]},
+ {id:"work",title:"Phrases for work",ko:"회사에서 쓰는 표현",lines:[
+  ["Could we move the meeting to three o'clock?","회의를 3시로 옮길 수 있을까요?"],
+  ["I'll send you the file by the end of the day.","오늘 중으로 파일 보내 드릴게요."],
+  ["Sorry, could you say that again a little slower?","죄송한데, 조금 더 천천히 다시 말씀해 주시겠어요?"],
+  ["That sounds like a good idea.","좋은 생각인 것 같아요."],
+  ["Let me check and get back to you.","확인해 보고 다시 연락드릴게요."],
+  ["Thanks for your help today.","오늘 도와주셔서 감사합니다."]]},
+ {id:"rain",title:"A rainy Saturday",ko:"비 오는 토요일",lines:[
+  ["It was raining when Jisoo woke up on Saturday morning.","토요일 아침에 지수가 일어났을 때 비가 오고 있었다."],
+  ["She had planned to go to the park, so she felt a little disappointed.","공원에 가려고 계획했었기 때문에 조금 실망했다."],
+  ["Instead, she made a cup of tea and opened a new book.","대신 차를 한 잔 타고 새 책을 펼쳤다."],
+  ["The sound of the rain was calm and relaxing.","빗소리가 차분하고 편안했다."],
+  ["By the afternoon, she had read half of the book.","오후가 되자 그녀는 책을 절반이나 읽었다."],
+  ["When the rain finally stopped, the sky turned bright orange.","마침내 비가 그치자 하늘이 밝은 주황색으로 물들었다."],
+  ["It wasn't the day she expected, but it was a good one.","기대했던 하루는 아니었지만, 좋은 하루였다."]]}
+].map(l=>({id:l.id,title:l.title,ko:l.ko,pages:[{lines:l.lines}],pos:0}));
+
+const PAGE_SIZE = 12;
+const $ = s => document.querySelector(s);
+const prefs = {
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+
+/* ---------- storage: IndexedDB for books, falls back to memory ---------- */
+const Store = {
+  db:null,
+  open(){return new Promise(res=>{
+    try{
+      const r=indexedDB.open("sbs-reader",1);
+      r.onupgradeneeded=()=>r.result.createObjectStore("lessons",{keyPath:"id"});
+      r.onsuccess=()=>{Store.db=r.result;res()};
+      r.onerror=()=>res();
+    }catch(e){res()}
+  })},
+  tx(mode){return Store.db.transaction("lessons",mode).objectStore("lessons")},
+  all(){return new Promise(res=>{
+    if(!Store.db) return res([]);
+    try{const q=Store.tx("readonly").getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])}catch(e){res([])}
+  })},
+  put(l){return new Promise(res=>{
+    if(!Store.db) return res(false);
+    try{const q=Store.tx("readwrite").put(l);q.onsuccess=()=>res(true);q.onerror=()=>res(false)}catch(e){res(false)}
+  })},
+  del(id){return new Promise(res=>{
+    if(!Store.db) return res();
+    try{const q=Store.tx("readwrite").delete(id);q.onsuccess=q.onerror=()=>res()}catch(e){res()}
+  })}
+};
+const saveTimers={};
+function saveLesson(L){ if(!L.custom) return; clearTimeout(saveTimers[L.id]); saveTimers[L.id]=setTimeout(()=>Store.put(L),400); }
+
+/* ---------- state ---------- */
+let custom=[];
+let state=Object.assign({lesson:"cafe",rate:1,voice:"",mode:"both",autoT:true},prefs.get("sbs.prefs",{}));
+delete state.auto;
+let repeat=false;
+const synth=window.speechSynthesis;
+let voices=[],token=0,current=-1,playingAll=false;
+let keyBad=false, translating=null, transError="";
+
+function allLessons(){return BUILTIN.concat(custom)}
+function lesson(){return allLessons().find(l=>l.id===state.lesson)||BUILTIN[0]}
+function page(L=lesson()){return L.pages[Math.min(L.pos||0,L.pages.length-1)]}
+function savePrefs(){prefs.set("sbs.prefs",state)}
+function tgtIdx(L){return L.src==="ko"?0:1}
+function missing(L,p){const t=tgtIdx(L);return L.pages[p].lines.some(l=>!l[t])}
+function getKey(){try{return localStorage.getItem("sbs.geminiKey")||""}catch(e){return ""}}
+function getModel(){try{return localStorage.getItem("sbs.geminiModel")||CONFIG.DEFAULT_MODEL}catch(e){return CONFIG.DEFAULT_MODEL}}
+function canTranslate(){return !!(CONFIG.PROXY_URL||getKey())&&!keyBad}
+function busyOn(L,p){return translating&&translating.L===L&&translating.p===p}
+const ICON_PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>';
+const ICON_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+
+/* ---------- rendering ---------- */
+function renderPicker(){
+  const p=$("#picker"); p.innerHTML="";
+  const a=document.createElement("button");
+  a.className="chip add"; a.textContent="+ Add book or text"; a.onclick=openDialog; p.appendChild(a);
+  allLessons().forEach(l=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.textContent=(l.book?"📘 ":"")+l.title; b.title=l.title;
+    b.setAttribute("aria-pressed",l.id===lesson().id);
+    b.onclick=()=>{stop();state.lesson=l.id;savePrefs();render();window.scrollTo(0,0)};
+    p.appendChild(b);
+  });
+}
+
+function renderHeader(){
+  const L=lesson();
+  $("#title").textContent=L.title;
+  $("#kotitle").textContent=L.ko||"";
+  $("#del").hidden=!L.custom;
+  const multi=L.pages.length>1;
+  $("#pager").hidden=!multi;
+  if(multi){
+    const p=L.pos||0;
+    $("#pgInput").value=p+1; $("#pgInput").max=L.pages.length;
+    $("#pgTotal").textContent=L.pages.length;
+    $("#pgChap").textContent=page(L).label||"";
+    $("#pgPrev").disabled=p===0; $("#pgNext").disabled=p>=L.pages.length-1;
+  }
+}
+
+function renderRows(){
+  const lines=page().lines;
+  const ol=$("#rows"); ol.innerHTML="";
+  lines.forEach((_,i)=>{
+    const li=document.createElement("li"); li.className="row"; li.dataset.i=i;
+    const btn=document.createElement("button");
+    btn.className="play"; btn.innerHTML=ICON_PLAY; btn.setAttribute("aria-label","Play sentence "+(i+1));
+    btn.onclick=()=>{ if(current===i&&synth&&synth.speaking&&!playingAll) stop(); else playSentence(i,false); };
+    const enEl=document.createElement("div"); enEl.className="en cell"; enEl.lang="en";
+    enEl.addEventListener("click",()=>reveal(enEl),true);
+    const koEl=document.createElement("div"); koEl.className="kocell cell ko"; koEl.lang="ko";
+    koEl.onclick=()=>reveal(koEl);
+    li.append(btn,enEl,koEl); ol.appendChild(li);
+    fillRow(i);
+  });
+}
+function fillRow(i){
+  const row=document.querySelector(`.row[data-i="${i}"]`); if(!row) return;
+  const L=lesson(), [en,ko]=page(L).lines[i]||["",""];
+  const busy=busyOn(L,L.pos||0);
+  const enEl=row.querySelector(".en"), koEl=row.querySelector(".kocell");
+  enEl.textContent="";
+  if(en){
+    enEl.classList.remove("pending");
+    let pos=0;
+    en.split(/(\s+)/).forEach(part=>{
+      if(!part) return;
+      if(/^\s+$/.test(part)) enEl.appendChild(document.createTextNode(part));
+      else{
+        const s=document.createElement("span"); s.className="w"; s.textContent=part;
+        s.dataset.start=pos; s.dataset.end=pos+part.length;
+        s.onclick=e=>{ if(needsReveal(enEl)) return; e.stopPropagation(); speakWord(part.replace(/[^A-Za-z'’-]/g,"")); };
+        enEl.appendChild(s);
+      }
+      pos+=part.length;
+    });
+  } else { enEl.textContent=busy?"Translating…":"—"; enEl.classList.add("pending"); }
+  if(ko){ koEl.textContent=ko; koEl.classList.remove("pending"); }
+  else { koEl.textContent=busy?"번역 중…":"—"; koEl.classList.add("pending"); }
+  row.querySelector(".play").disabled=!en;
+}
+function fillKo(i){fillRow(i)}
+function needsReveal(el){return document.body.dataset.mode==="hideEn"&&el.classList.contains("en")&&!el.classList.contains("revealed")}
+function reveal(el){
+  const m=document.body.dataset.mode;
+  if((m==="hideKo"&&el.classList.contains("kocell"))||(m==="hideEn"&&el.classList.contains("en"))) el.classList.add("revealed");
+}
+
+function renderTransbar(){
+  const L=lesson(), p=L.pos||0;
+  const miss=missing(L,p), busyHere=busyOn(L,p);
+  const bar=$("#transbar");
+  bar.hidden=!(miss||busyHere);
+  if(bar.hidden) return;
+  const msg=$("#transMsg"), btn=$("#transBtn");
+  const into=L.src==="ko"?"English":"Korean";
+  msg.classList.toggle("err",!!transError&&!busyHere);
+  $("#autoWrap").hidden=!canTranslate();
+  $("#autoT").checked=!!state.autoT;
+  btn.hidden=false; btn.disabled=false;
+  if(!canTranslate()){
+    btn.textContent=CONFIG.PROXY_URL?"Try again":"Add Gemini key"; btn.className="";
+    msg.textContent=keyBad?(transError||"Gemini didn't accept the API key. Check it in translation settings.")
+      :"Add your free Gemini API key to translate this page.";
+    msg.classList.toggle("err",keyBad);
+    return;
+  }
+  if(busyHere){ msg.textContent=`Translating this page into ${into}…`; btn.textContent="Stop"; btn.className="ghost"; }
+  else if(translating){ msg.textContent="Translating another page first. This page is next."; btn.textContent="Translate this page"; btn.className=""; btn.disabled=true; }
+  else { msg.textContent=transError||`This page has no ${into} yet.`; btn.textContent=transError?"Try again":"Translate this page"; btn.className=""; }
+}
+
+function render(){ current=-1; renderPicker(); renderHeader(); renderRows(); renderTransbar(); syncPlayBtn();
+  $("#status").textContent="Press play to listen"; }
+
+function goPage(p,{keepPlaying=false}={}){
+  const L=lesson(); p=Math.max(0,Math.min(L.pages.length-1,p));
+  if(!keepPlaying) stop();
+  L.pos=p; saveLesson(L); transError="";
+  current=-1; renderHeader(); renderRows(); renderTransbar();
+  if(!keepPlaying) window.scrollTo(0,0);
+  autoNext();
+}
+/* translate the page being read, or the one after it, when auto is on */
+function autoNext(){
+  if(!state.autoT||!canTranslate()||translating) return;
+  const L=lesson(); if(!L.custom) return; const p=L.pos||0;
+  if(missing(L,p)) translatePage(L,p);
+  else if(p+1<L.pages.length&&missing(L,p+1)) translatePage(L,p+1);
+}
+$("#pgPrev").onclick=()=>goPage((lesson().pos||0)-1);
+$("#pgNext").onclick=()=>goPage((lesson().pos||0)+1);
+$("#pgInput").onchange=e=>{const n=parseInt(e.target.value,10); if(n) goPage(n-1); else renderHeader();};
+
+/* ---------- modes, speed, voice ---------- */
+function setMode(m){
+  state.mode=m; savePrefs(); document.body.dataset.mode=m;
+  document.querySelectorAll("#modes button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mode===m));
+  document.querySelectorAll(".revealed").forEach(e=>e.classList.remove("revealed"));
+}
+document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+document.querySelectorAll("#speed button").forEach(b=>b.onclick=()=>{
+  state.rate=parseFloat(b.dataset.rate); savePrefs(); syncSpeed();
+  if(current>=0&&synth&&synth.speaking) playSentence(current,playingAll);
+});
+function syncSpeed(){document.querySelectorAll("#speed button").forEach(b=>b.setAttribute("aria-pressed",parseFloat(b.dataset.rate)===state.rate))}
+$("#repeat").onclick=()=>{repeat=!repeat;$("#repeat").setAttribute("aria-pressed",repeat)};
+
+function loadVoices(){
+  if(!synth) return;
+  voices=synth.getVoices().filter(v=>/^en/i.test(v.lang));
+  const sel=$("#voice"); sel.innerHTML="";
+  if(!voices.length){const o=document.createElement("option");o.textContent="Default";sel.appendChild(o);return;}
+  const rank=v=>(/natural|neural|premium|enhanced/i.test(v.name)?0:/google|samantha|aria|jenny/i.test(v.name)?1:2)+(/en-US/i.test(v.lang)?0:.5);
+  voices.sort((a,b)=>rank(a)-rank(b));
+  voices.forEach(v=>{const o=document.createElement("option");o.value=v.voiceURI;o.textContent=v.name.replace(/Microsoft |Google /,"")+" ("+v.lang+")";sel.appendChild(o);});
+  if(state.voice&&voices.some(v=>v.voiceURI===state.voice)) sel.value=state.voice;
+}
+$("#voice").onchange=e=>{state.voice=e.target.value;savePrefs()};
+function pickVoice(){return voices.find(v=>v.voiceURI===$("#voice").value)||voices[0]||null}
+
+/* ---------- speech ---------- */
+function utter(text){
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="en-US"; u.rate=state.rate; const v=pickVoice(); if(v) u.voice=v;
+  return u;
+}
+function stop(){
+  token++; playingAll=false;
+  if(synth) synth.cancel();
+  clearWords(); setActive(-1); syncPlayBtn();
+  $("#status").textContent="Press play to listen";
+}
+function playSentence(i,chain){
+  if(!synth) return;
+  const L=lesson(), lines=page(L).lines; if(i<0||i>=lines.length) return;
+  token++; synth.cancel();
+  const my=token; playingAll=chain; setActive(i); syncPlayBtn();
+  $("#status").textContent=`Sentence ${i+1} of ${lines.length}`+(L.pages.length>1?`, page ${(L.pos||0)+1}`:"");
+  if(!lines[i][0]){
+    if(busyOn(L,L.pos||0)||(chain&&translating)){ $("#status").textContent="Waiting for the English translation…"; setTimeout(()=>{if(my===token) playSentence(i,chain)},900); return; }
+    if(chain&&i+1<lines.length){ setTimeout(()=>{if(my===token) playSentence(i+1,true)},100); return; }
+    playingAll=false; syncPlayBtn(); $("#status").textContent="This sentence has no English yet"; return;
+  }
+  const u=utter(lines[i][0]);
+  u.onboundary=e=>{ if(my!==token) return; if(e.name&&e.name!=="word") return; highlight(i,e.charIndex); };
+  u.onend=()=>{
+    if(my!==token) return; clearWords();
+    if(repeat){ setTimeout(()=>{if(my===token) playSentence(i,chain)},700); return; }
+    if(chain&&i+1<lines.length){ setTimeout(()=>{if(my===token) playSentence(i+1,true)},450); return; }
+    if(chain&&(L.pos||0)<L.pages.length-1){
+      setTimeout(()=>{ if(my!==token) return; goPage((L.pos||0)+1,{keepPlaying:true}); playSentence(0,true); },700); return;
+    }
+    playingAll=false; syncPlayBtn(); $("#status").textContent=chain?"Finished":`Sentence ${i+1} of ${lines.length}`;
+  };
+  u.onerror=()=>{ if(my===token){playingAll=false;syncPlayBtn();} };
+  setTimeout(()=>{ if(my===token) synth.speak(u); },40);
+}
+function speakWord(w){
+  if(!synth||!w) return;
+  token++; playingAll=false; synth.cancel(); syncPlayBtn();
+  const u=utter(w); u.rate=Math.min(state.rate,0.85);
+  setTimeout(()=>synth.speak(u),40);
+}
+function setActive(i){
+  if(i>=0) current=i;
+  document.querySelectorAll(".row").forEach(r=>r.classList.toggle("active",+r.dataset.i===i));
+  if(i>=0&&playingAll){
+    const r=document.querySelector(`.row[data-i="${i}"]`);
+    const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+    r&&r.scrollIntoView({block:"center",behavior:reduce?"auto":"smooth"});
+  }
+}
+function highlight(i,idx){
+  clearWords();
+  const r=document.querySelector(`.row[data-i="${i}"]`); if(!r) return;
+  r.querySelectorAll(".w").forEach(w=>{ if(idx>=+w.dataset.start&&idx<+w.dataset.end) w.classList.add("on"); });
+}
+function clearWords(){document.querySelectorAll(".w.on").forEach(w=>w.classList.remove("on"))}
+function syncPlayBtn(){
+  const b=$("#playall"); b.innerHTML=playingAll?ICON_PAUSE:ICON_PLAY;
+  b.setAttribute("aria-label",playingAll?"Stop":"Play all");
+}
+$("#playall").onclick=()=>{ if(playingAll) stop(); else playSentence(current>=0?current:0,true); };
+$("#prev").onclick=()=>{
+  const L=lesson();
+  if(current>0) playSentence(current-1,playingAll);
+  else if((L.pos||0)>0){ const keep=playingAll; goPage(L.pos-1,{keepPlaying:true}); playSentence(page().lines.length-1,keep); }
+  else playSentence(0,playingAll);
+};
+$("#next").onclick=()=>{
+  const L=lesson(), n=page(L).lines.length;
+  if(current<n-1) playSentence(current+1,playingAll);
+  else if((L.pos||0)<L.pages.length-1){ const keep=playingAll; goPage(L.pos+1,{keepPlaying:true}); playSentence(0,keep); }
+};
+
+/* ---------- Gemini ---------- */
+class TransError extends Error{constructor(code,message){super(message);this.code=code}}
+async function geminiTranslate(prompt,{signal,onDelta}){
+  const body={
+    contents:[{role:"user",parts:[{text:prompt}]}],
+    generationConfig:{temperature:0.3,maxOutputTokens:8192}
+  };
+  let url, headers={"Content-Type":"application/json"};
+  if(CONFIG.PROXY_URL){ url=CONFIG.PROXY_URL; body.model=getModel(); }
+  else{
+    url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}:streamGenerateContent?alt=sse`;
+    headers["x-goog-api-key"]=getKey();
+  }
+  let res;
+  try{ res=await fetch(url,{method:"POST",headers,body:JSON.stringify(body),signal}); }
+  catch(e){ if(e.name==="AbortError") throw new TransError("cancelled",""); throw new TransError("network","Couldn't reach the translation service. Check your connection, then press Try again."); }
+  if(!res.ok){
+    let detail=""; try{const j=await res.json(); detail=(j.error&&j.error.message)||"";}catch(e){}
+    if(res.status===400&&/api key/i.test(detail)||res.status===401||res.status===403) throw new TransError("bad_key","Gemini didn't accept the API key. Check it in translation settings.");
+    if(res.status===404) throw new TransError("bad_model",`Gemini doesn't know the model "${getModel()}". Change it in translation settings.`);
+    if(res.status===429) throw new TransError("rate_limited","Gemini's usage limit was reached. Wait a minute, then press Try again.");
+    throw new TransError("other","Gemini returned an error"+(detail?": "+detail:"")+". Press Try again.");
+  }
+  const reader=res.body.getReader(), dec=new TextDecoder();
+  let buf="", text="", finish="";
+  try{
+    for(;;){
+      const {done,value}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      let k; while((k=buf.indexOf("\n"))>=0){
+        const line=buf.slice(0,k).trim(); buf=buf.slice(k+1);
+        if(!line.startsWith("data:")) continue;
+        try{
+          const ev=JSON.parse(line.slice(5));
+          const c=ev.candidates&&ev.candidates[0];
+          if(c&&c.finishReason) finish=c.finishReason;
+          const d=c&&c.content&&c.content.parts?c.content.parts.map(x=>x.thought?"":(x.text||"")).join(""):"";
+          if(d){ text+=d; onDelta(d); }
+          if(ev.promptFeedback&&ev.promptFeedback.blockReason) finish="BLOCKED";
+        }catch(e){}
+      }
+    }
+  }catch(e){
+    const err=e.name==="AbortError"?new TransError("cancelled",""):new TransError("network","The connection dropped. Press Try again.");
+    err.text=text; throw err;
+  }
+  if(!text&&/SAFETY|BLOCK|PROHIBITED/i.test(finish)) throw new TransError("blocked","Gemini refused to translate this page.");
+  return text;
+}
+
+/* ---------- translation ---------- */
+$("#transBtn").onclick=()=>{
+  if(translating){ translating.ctl.abort(); return; }
+  if(!canTranslate()){ if(CONFIG.PROXY_URL){keyBad=false;transError="";} else { openSettings(); return; } }
+  const L=lesson(); translatePage(L,L.pos||0);
+};
+$("#autoT").onchange=e=>{ state.autoT=e.target.checked; savePrefs(); autoNext(); };
+
+async function translatePage(L,p){
+  if(!canTranslate()||translating) return;
+  const pg=L.pages[p], t=tgtIdx(L), sIdx=1-t;
+  const todo=pg.lines.map((l,i)=>[i,l[sIdx]]).filter(([i,x])=>x&&!pg.lines[i][t]);
+  if(!todo.length) return;
+  const ctl=new AbortController();
+  translating={L,p,ctl}; transError="";
+  const showing=()=>L===lesson()&&p===(L.pos||0);
+  renderTransbar(); if(showing()) todo.forEach(([i])=>fillRow(i));
+  const toKo=t===1;
+  const prompt=toKo?
+`Translate each numbered English sentence into natural Korean for a Korean speaker who is learning English by reading the two side by side.
+Stay close to the English meaning and order so the learner can compare them, but write Korean that sounds natural.
+Use polite 해요체 for spoken dialogue and plain written style (한다체) for narration or articles. Write names in Hangul.`
+:
+`Translate each numbered Korean sentence into natural, clear English for a Korean speaker who is learning English by reading the two side by side.
+Stay close to the Korean meaning and order so the learner can compare them. Use everyday modern English that sounds natural when read aloud; keep names romanized.`;
+  const full=prompt+`
+Output exactly one JSON object per line and nothing else, like:
+{"i":3,"t":"${toKo?"번역문":"translation"}"}
+
+Source: ${L.title}${pg.label?" / "+pg.label:""}
+Sentences:
+${todo.map(([i,x])=>i+": "+x).join("\n")}`;
+  let pending="", got=0;
+  const apply=line=>{
+    line=line.trim().replace(/,$/,""); if(!line.startsWith("{")) return;
+    try{
+      const o=JSON.parse(line); const val=typeof o.t==="string"?o.t:(typeof o.ko==="string"?o.ko:o.en);
+      if(Number.isInteger(o.i)&&typeof val==="string"&&val.trim()&&pg.lines[o.i]&&!pg.lines[o.i][t]){
+        pg.lines[o.i][t]=val.trim(); got++;
+        if(showing()) fillRow(o.i);
+      }
+    }catch(e){}
+  };
+  try{
+    const text=await geminiTranslate(full,{signal:ctl.signal,onDelta:delta=>{
+      const parts=(pending+delta).split("\n"); pending=parts.pop(); parts.forEach(apply);
+    }});
+    text.split("\n").forEach(apply);
+    if(missing(L,p)) transError="Some sentences weren't translated. Press Try again to fill them in.";
+  }catch(e){
+    if(e&&e.text) e.text.split("\n").forEach(apply);
+    const c=e&&e.code;
+    if(c==="cancelled"){ transError=""; state.autoT=false; savePrefs(); }
+    else if(c==="bad_key"){ keyBad=true; transError=e.message; }
+    else transError=(e&&e.message)||"Translation stopped before it finished. Press Try again.";
+  }finally{
+    translating=null;
+    if(got) saveLesson(L);
+    if(showing()) pg.lines.forEach((_,i)=>fillRow(i));
+    renderTransbar();
+    if(!transError) autoNext();
+  }
+}
+
+/* ---------- text → sentences → pages ---------- */
+const ABBR=/\b(Mr|Mrs|Ms|Dr|Prof|St|Jr|Sr|vs|etc|Inc|Ltd|Co|No|Vol|Fig|e\.g|i\.e|U\.S|a\.m|p\.m)\.$/i;
+function splitLong(s){
+  if(s.length<=320) return [s];
+  const parts=s.split(/(?<=[;:,—])\s+/); const out=[]; let cur="";
+  for(const p of parts){ if((cur+" "+p).trim().length>220&&cur){out.push(cur.trim());cur=p;} else cur=(cur+" "+p).trim(); }
+  if(cur) out.push(cur.trim());
+  return out.flatMap(x=>x.length>400?x.match(/.{1,300}(\s|$)/g).map(y=>y.trim()).filter(Boolean):[x]);
+}
+function detectLang(text){
+  const sample_=(text||"").slice(0,30000);
+  const h=(sample_.match(/[\uAC00-\uD7A3]/g)||[]).length, a=(sample_.match(/[A-Za-z]/g)||[]).length;
+  return h*2>a?"ko":"en";
+}
+function sentences(text,lang="en"){
+  text=(text||"").replace(/\s+/g," ").trim(); if(!text) return [];
+  let raw=[];
+  if(window.Intl&&Intl.Segmenter){ for(const s of new Intl.Segmenter(lang,{granularity:"sentence"}).segment(text)){const t=s.segment.trim(); if(t) raw.push(t);} }
+  else raw=(text.match(/[^.!?]+[.!?]+["'”’)\]]*|[^.!?]+$/g)||[text]).map(s=>s.trim()).filter(Boolean);
+  const merged=[];
+  for(const s of raw){
+    const last=merged[merged.length-1];
+    if(last&&(ABBR.test(last)||s.length<3||/^[a-z]/.test(s))) merged[merged.length-1]=last+" "+s;
+    else merged.push(s);
+  }
+  return merged.flatMap(splitLong);
+}
+function toPages(chapters,src="en"){
+  const pages=[];
+  chapters.forEach(ch=>{
+    const sents=ch.paras.flatMap(x=>sentences(x,src));
+    for(let i=0;i<sents.length;i+=PAGE_SIZE) pages.push({label:ch.title||"",lines:sents.slice(i,i+PAGE_SIZE).map(s=>src==="ko"?["",s]:[s,""])});
+  });
+  return pages;
+}
+
+/* ---------- file readers ---------- */
+function loadScript(src,globalName){
+  return new Promise((res,rej)=>{
+    if(window[globalName]) return res(window[globalName]);
+    const s=document.createElement("script"); s.src=src; s.async=true;
+    s.onload=()=>window[globalName]?res(window[globalName]):rej(new Error("load"));
+    s.onerror=()=>rej(new Error("load")); document.head.appendChild(s);
+  });
+}
+const PDFJS="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+async function readPdf(file,progress){
+  const lib=await loadScript(PDFJS+"pdf.min.js","pdfjsLib");
+  lib.GlobalWorkerOptions.workerSrc=PDFJS+"pdf.worker.min.js";
+  const pdf=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,cMapUrl:PDFJS+"cmaps/",cMapPacked:true}).promise;
+  let text="";
+  for(let n=1;n<=pdf.numPages;n++){
+    progress(`Reading page ${n} of ${pdf.numPages}…`);
+    const pg=await pdf.getPage(n); const tc=await pg.getTextContent();
+    let t=""; tc.items.forEach(it=>{ if("str" in it){ t+=it.str; t+=it.hasEOL?"\n":(it.str.endsWith(" ")?"":" "); } });
+    t=t.split("\n").filter(l=>!/^\s*(\d{1,4}|page \d+( of \d+)?)\s*$/i.test(l)).join("\n");
+    text+=t+"\n";
+  }
+  text=text.replace(/(\w)-\n(\w)/g,"$1$2");
+  if(text.replace(/\s/g,"").length<40) throw new Error("This PDF has no selectable text. It may be a scan or photos of pages.");
+  const meta=await pdf.getMetadata().catch(()=>null);
+  const title=(meta&&meta.info&&meta.info.Title&&meta.info.Title.trim())||file.name.replace(/\.pdf$/i,"");
+  return {title,chapters:[{title:"",paras:[text]}]};
+}
+function normPath(p){const out=[];p.split("/").forEach(s=>{if(s===".."){out.pop()}else if(s&&s!=="."){out.push(s)}});return out.join("/")}
+async function readEpub(file,progress){
+  const JSZip=await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js","JSZip");
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());
+  const xml=s=>new DOMParser().parseFromString(s,"application/xml");
+  const cont=zip.file("META-INF/container.xml"); if(!cont) throw new Error("This EPUB file looks damaged. Try another copy.");
+  const opfPath=xml(await cont.async("text")).getElementsByTagName("rootfile")[0].getAttribute("full-path");
+  const opf=xml(await zip.file(opfPath).async("text"));
+  const base=opfPath.includes("/")?opfPath.replace(/[^/]+$/,""):"";
+  const t=opf.getElementsByTagNameNS("*","title")[0];
+  const title=(t&&t.textContent.trim())||file.name.replace(/\.epub$/i,"");
+  const items={}; [...opf.getElementsByTagName("item")].forEach(it=>items[it.getAttribute("id")]={href:it.getAttribute("href"),props:it.getAttribute("properties")||"",type:it.getAttribute("media-type")||""});
+  const spine=[...opf.getElementsByTagName("itemref")].map(r=>items[r.getAttribute("idref")]).filter(Boolean);
+  const chapters=[];
+  for(let k=0;k<spine.length;k++){
+    const it=spine[k]; if(/nav/.test(it.props)||!/html/.test(it.type)) continue;
+    progress(`Reading section ${k+1} of ${spine.length}…`);
+    const f=zip.file(normPath(base+decodeURIComponent(it.href.split("#")[0]))); if(!f) continue;
+    const doc=new DOMParser().parseFromString(await f.async("text"),"text/html");
+    doc.querySelectorAll("script,style,nav").forEach(e=>e.remove());
+    let blocks=[...doc.querySelectorAll("h1,h2,h3,h4,h5,h6,p,li,blockquote,pre,dd,dt")].filter(el=>!el.querySelector("p,li,blockquote,h1,h2,h3,h4,h5,h6"));
+    let paras=blocks.map(b=>b.textContent.trim()).filter(Boolean);
+    if(!paras.length&&doc.body) paras=[doc.body.textContent];
+    const h=doc.querySelector("h1,h2,h3");
+    const chTitle=(h&&h.textContent.trim().slice(0,60))||"";
+    if(paras.join(" ").replace(/\s/g,"").length<20) continue;
+    chapters.push({title:chTitle||`Section ${chapters.length+1}`,paras});
+  }
+  if(!chapters.length) throw new Error("No readable text was found in this EPUB. DRM-protected books can't be opened.");
+  return {title,chapters};
+}
+async function readTxt(file){
+  const text=await file.text();
+  return {title:file.name.replace(/\.txt$/i,""),chapters:[{title:"",paras:text.split(/\n\s*\n/)}]};
+}
+
+/* ---------- add dialog ---------- */
+const dlg=$("#dlg");
+function openDialog(){ $("#addform").reset(); $("#fErr").textContent=""; $("#progress").textContent=""; dlg.showModal(); }
+$("#cancel").onclick=()=>dlg.close();
+$("#pickBtn").onclick=()=>$("#fileIn").click();
+$("#fileIn").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; if(f) importFile(f); };
+const drop=$("#drop");
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0]; if(f) importFile(f);});
+
+let importing=false;
+async function importFile(file){
+  if(importing) return;
+  const prog=$("#progress"); const say=t=>{prog.textContent=t;prog.style.color=""};
+  const ext=(file.name.split(".").pop()||"").toLowerCase();
+  if(!["pdf","epub","txt"].includes(ext)){ prog.textContent="This file type isn't supported. Use a PDF, EPUB or TXT file (Kindle files need converting to EPUB first)."; prog.style.color="var(--err)"; return; }
+  if(file.size>80*1024*1024){ prog.textContent="This file is over 80 MB. Try a smaller file."; prog.style.color="var(--err)"; return; }
+  importing=true; $("#pickBtn").disabled=true; say("Opening file…");
+  try{
+    const res=ext==="pdf"?await readPdf(file,say):ext==="epub"?await readEpub(file,say):await readTxt(file);
+    say("Splitting into sentences…");
+    const src=detectLang(res.chapters.map(c=>c.paras.join(" ")).join(" "));
+    const pages=toPages(res.chapters,src);
+    if(!pages.length) throw new Error("No sentences were found in this file.");
+    const L={id:"b"+Date.now(),title:res.title.slice(0,80),ko:src==="ko"?"한국어 원문 → English":"",src,custom:true,book:true,pages,pos:0};
+    custom.push(L);
+    const ok=await Store.put(L);
+    state.lesson=L.id; savePrefs(); dlg.close(); stop(); render(); window.scrollTo(0,0);
+    if(!ok) showNotice("This book couldn't be saved in your browser, so it will disappear when you close the page.");
+    if(canTranslate()) translatePage(L,0);
+  }catch(err){
+    prog.textContent=(err&&err.message&&err.message!=="load")?err.message:"The file couldn't be read. Check your connection and try again.";
+    prog.style.color="var(--err)";
+  }finally{ importing=false; $("#pickBtn").disabled=false; }
+}
+
+$("#addform").onsubmit=async e=>{
+  e.preventDefault();
+  const aRaw=$("#fEn").value.trim(), bLines=$("#fKo").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  if(!aRaw){$("#fErr").textContent="Paste some text in the first box.";return;}
+  const src=detectLang(aRaw);
+  let lines;
+  if(bLines.length){
+    const aLines=aRaw.split("\n").map(s=>s.trim()).filter(Boolean);
+    if(aLines.length!==bLines.length){$("#fErr").textContent=`The first box has ${aLines.length} lines and the translation has ${bLines.length}. Put one sentence per line in each box so they line up.`;return;}
+    lines=aLines.map((x,i)=>src==="ko"?[bLines[i],x]:[x,bLines[i]]);
+  } else lines=sentences(aRaw,src).map(x=>src==="ko"?["",x]:[x,""]);
+  const pages=[]; for(let i=0;i<lines.length;i+=PAGE_SIZE) pages.push({label:"",lines:lines.slice(i,i+PAGE_SIZE)});
+  const L={id:"c"+Date.now(),title:$("#fTitle").value.trim()||"My text",ko:"",src,custom:true,pages,pos:0};
+  custom.push(L); await Store.put(L);
+  state.lesson=L.id; savePrefs(); dlg.close(); stop(); render();
+  if(canTranslate()) translatePage(L,0);
+};
+$("#del").onclick=async()=>{
+  const L=lesson(); if(!L.custom) return;
+  if(!confirm(`Delete “${L.title}”?`)) return;
+  if(translating&&translating.L===L) translating.ctl.abort();
+  custom=custom.filter(c=>c.id!==L.id); await Store.del(L.id);
+  state.lesson="cafe"; savePrefs(); stop(); render();
+};
+const setDlg=$("#setDlg");
+function openSettings(){
+  $("#keyArea").hidden=!!CONFIG.PROXY_URL; $("#sRemove").hidden=!!CONFIG.PROXY_URL||!getKey();
+  $("#proxyNote").hidden=!CONFIG.PROXY_URL;
+  $("#sKey").value=getKey(); $("#sModel").value=getModel(); $("#sErr").textContent=""; $("#sErr").style.color="";
+  setDlg.showModal();
+}
+$("#setBtn").onclick=openSettings;
+function storeSettings(){
+  try{
+    const k=$("#sKey").value.trim(), m=$("#sModel").value.trim()||CONFIG.DEFAULT_MODEL;
+    if(!CONFIG.PROXY_URL){ if(k) localStorage.setItem("sbs.geminiKey",k); else localStorage.removeItem("sbs.geminiKey"); }
+    localStorage.setItem("sbs.geminiModel",m);
+  }catch(e){}
+  keyBad=false; transError="";
+}
+$("#setForm").onsubmit=e=>{ e.preventDefault(); storeSettings(); setDlg.close(); renderTransbar(); autoNext(); };
+$("#sRemove").onclick=()=>{ try{localStorage.removeItem("sbs.geminiKey")}catch(e){} $("#sKey").value=""; keyBad=false; setDlg.close(); renderTransbar(); };
+$("#sTest").onclick=async()=>{
+  storeSettings(); const out=$("#sErr"); out.style.color="var(--muted)";
+  if(!canTranslate()){ out.style.color=""; out.textContent="Paste a key first."; return; }
+  out.textContent="Testing…";
+  try{ const t=await geminiTranslate('Translate into Korean and reply with only the translation: "Good morning!"',{onDelta:()=>{}});
+    out.style.color="var(--celadon)"; out.textContent="It works: "+t.trim().slice(0,60); }
+  catch(err){ out.style.color=""; out.textContent=err.message||"The test failed."; if(err.code==="bad_key") keyBad=false; }
+};
+function showNotice(t){const n=$("#nosupport");n.textContent=t;n.hidden=false;}
+
+/* ---------- start ---------- */
+(async function init(){
+  if(!synth) $("#nosupport").hidden=false; else { loadVoices(); synth.onvoiceschanged=loadVoices; }
+  syncSpeed(); setMode(state.mode); render();
+  await Store.open();
+  custom=(await Store.all()).sort((a,b)=>a.id.localeCompare(b.id));
+  const old=prefs.get("sbs.custom",null);
+  if(old&&old.length){
+    for(const o of old){ if(!custom.some(c=>c.id===o.id)){ const L={id:o.id,title:o.title,ko:"",custom:true,pages:[{label:"",lines:o.lines}],pos:0}; custom.push(L); await Store.put(L);} }
+    try{localStorage.removeItem("sbs.custom")}catch(e){}
+  }
+  render();
+  autoNext();
+})();
+</script>
+</body>
+</html>
