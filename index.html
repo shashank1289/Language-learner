@@ -246,7 +246,9 @@ dialog textarea{min-height:120px;resize:vertical;line-height:1.5}
    ===================================================================== */
 const CONFIG = {
   PROXY_URL: "",
-  DEFAULT_MODEL: "gemini-flash-latest"
+  DEFAULT_MODEL: "gemini-flash-latest",
+  // Tried in order when the main model is busy or out of quota.
+  FALLBACK_MODELS: ["gemini-flash-lite-latest", "gemini-2.5-flash"]
 };
 
 const BUILTIN = [
@@ -577,15 +579,15 @@ $("#next").onclick=()=>{
 
 /* ---------- Gemini ---------- */
 class TransError extends Error{constructor(code,message){super(message);this.code=code}}
-async function geminiTranslate(prompt,{signal,onDelta}){
+async function geminiOnce(prompt,model,{signal,onDelta}){
   const body={
     contents:[{role:"user",parts:[{text:prompt}]}],
     generationConfig:{temperature:0.3,maxOutputTokens:8192}
   };
   let url, headers={"Content-Type":"application/json"};
-  if(CONFIG.PROXY_URL){ url=CONFIG.PROXY_URL; body.model=getModel(); }
+  if(CONFIG.PROXY_URL){ url=CONFIG.PROXY_URL; body.model=model; }
   else{
-    url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getModel())}:streamGenerateContent?alt=sse`;
+    url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
     headers["x-goog-api-key"]=getKey();
   }
   let res;
@@ -594,8 +596,9 @@ async function geminiTranslate(prompt,{signal,onDelta}){
   if(!res.ok){
     let detail=""; try{const j=await res.json(); detail=(j.error&&j.error.message)||"";}catch(e){}
     if(res.status===400&&/api key/i.test(detail)||res.status===401||res.status===403) throw new TransError("bad_key","Gemini didn't accept the API key. Check it in translation settings.");
-    if(res.status===404) throw new TransError("bad_model",`Gemini doesn't know the model "${getModel()}". Change it in translation settings.`);
+    if(res.status===404) throw new TransError("bad_model",`Gemini doesn't know the model "${model}". Change it in translation settings.`);
     if(res.status===429) throw new TransError("rate_limited","Gemini's usage limit was reached. Wait a minute, then press Try again.");
+    if(res.status===503||res.status===500||res.status===502||res.status===504) throw new TransError("busy","Gemini is busy right now. Wait a minute, then press Try again.");
     throw new TransError("other","Gemini returned an error"+(detail?": "+detail:"")+". Press Try again.");
   }
   const reader=res.body.getReader(), dec=new TextDecoder();
@@ -623,6 +626,32 @@ async function geminiTranslate(prompt,{signal,onDelta}){
   }
   if(!text&&/SAFETY|BLOCK|PROHIBITED/i.test(finish)) throw new TransError("blocked","Gemini refused to translate this page.");
   return text;
+}
+
+/* Retries busy errors, then falls back to other models. */
+const wait=(ms,signal)=>new Promise((res,rej)=>{const t=setTimeout(res,ms);signal&&signal.addEventListener("abort",()=>{clearTimeout(t);rej(new TransError("cancelled",""))},{once:true})});
+const busyUntil={};
+async function geminiTranslate(prompt,{signal,onDelta,onRetry}={}){
+  const all=[getModel(),...CONFIG.FALLBACK_MODELS].filter((m,i,a)=>m&&a.indexOf(m)===i);
+  const now=Date.now(), fresh=all.filter(m=>!(busyUntil[m]>now));
+  const models=fresh.length?fresh:all;   // skip models that were busy in the last few minutes
+  let last;
+  for(const model of models){
+    for(let attempt=0;attempt<2;attempt++){
+      let streamed=false;
+      try{ return await geminiOnce(prompt,model,{signal,onDelta:d=>{streamed=true;onDelta(d)}}); }
+      catch(e){
+        last=e;
+        if(streamed||!["busy","rate_limited","bad_model"].includes(e.code)) throw e;
+        if(e.code!=="busy") break;            // quota or unknown model: go straight to the next model
+        if(attempt===0){ onRetry&&onRetry(`Gemini is busy. Trying again…`); await wait(2500,signal); }
+      }
+    }
+    if(last&&last.code!=="bad_model") busyUntil[model]=Date.now()+3*60*1000;
+    const next=models[models.indexOf(model)+1];
+    if(next&&onRetry) onRetry(`Gemini is busy. Switching to ${next}…`);
+  }
+  throw last;
 }
 
 /* ---------- translation ---------- */
@@ -669,7 +698,9 @@ ${todo.map(([i,x])=>i+": "+x).join("\n")}`;
     }catch(e){}
   };
   try{
-    const text=await geminiTranslate(full,{signal:ctl.signal,onDelta:delta=>{
+    const text=await geminiTranslate(full,{signal:ctl.signal,
+      onRetry:m=>{ if(showing()) $("#transMsg").textContent=m; },
+      onDelta:delta=>{
       const parts=(pending+delta).split("\n"); pending=parts.pop(); parts.forEach(apply);
     }});
     text.split("\n").forEach(apply);
@@ -687,6 +718,39 @@ ${todo.map(([i,x])=>i+": "+x).join("\n")}`;
     renderTransbar();
     if(!transError) autoNext();
   }
+}
+
+
+/* ---------- repair text from old PDFs made on a Mac ----------
+   Some older PDFs store Windows characters with Mac encoding, so “ ” ’ — é
+   come out as ì î í ó È. When a document clearly shows that pattern,
+   map every affected character back. */
+const MAC2WIN={"Ä": "€", "Ç": "‚", "É": "ƒ", "Ñ": "„", "Ö": "…", "Ü": "†", "á": "‡", "à": "ˆ", "â": "‰", "ä": "Š", "ã": "‹", "å": "Œ", "é": "Ž", "ë": "‘", "í": "’", "ì": "“", "î": "”", "ï": "•", "ñ": "–", "ó": "—", "ò": "˜", "ô": "™", "ö": "š", "õ": "›", "ú": "œ", "û": "ž", "ü": "Ÿ", "°": "¡", "§": "¤", "¶": "¦", "ß": "§", "®": "¨", "´": "«", "¨": "¬", "≠": "­", "Æ": "®", "Ø": "¯", "∞": "°", "≤": "²", "≥": "³", "¥": "´", "∂": "¶", "∑": "·", "∏": "¸", "π": "¹", "∫": "º", "ª": "»", "º": "¼", "Ω": "½", "æ": "¾", "ø": "¿", "¿": "À", "¡": "Á", "¬": "Â", "√": "Ã", "ƒ": "Ä", "≈": "Å", "∆": "Æ", "«": "Ç", "»": "È", " ": "Ê", "À": "Ë", "Ã": "Ì", "Õ": "Í", "Œ": "Î", "œ": "Ï", "÷": "Ö", "◊": "×", "ÿ": "Ø", "Ÿ": "Ù", "ﬁ": "Þ", "ﬂ": "ß", "·": "á", "Â": "å", "Ê": "æ", "Á": "ç", "Ë": "è", "È": "é", "Í": "ê", "Î": "ë", "Ï": "ì", "Ì": "í", "Ó": "î", "Ô": "ï", "": "ð", "Ò": "ñ", "Ú": "ò", "Û": "ó", "Ù": "ô", "ı": "õ", "ˆ": "ö", "˜": "÷", "¯": "ø", "˘": "ù", "˙": "ú", "˚": "û", "¸": "ü", "˝": "ý", "˛": "þ", "ˇ": "ÿ"};
+const MAC2WIN_RE=new RegExp("["+Object.keys(MAC2WIN).map(c=>c.replace(/[\\\]^-]/g,"\\$&")).join("")+"]","g");
+function looksMojibake(t){
+  t=(t||"").slice(0,300000);
+  const bad=(t.match(/[A-Za-z]í(?:t|s|re|ve|ll|d|m)\b/g)||[]).length
+    +(t.match(/(?:^|[\s(\[])ì[A-Za-z0-9]/g)||[]).length
+    +(t.match(/[A-Za-z.,!?;:]î(?=[\s)\]]|$)/g)||[]).length;
+  const good=(t.match(/[“”’]/g)||[]).length;
+  return bad>=3&&bad>good;
+}
+function fixMojibake(t){return (t||"").replace(MAC2WIN_RE,c=>MAC2WIN[c])}
+function repairChapters(res){
+  const all=res.chapters.map(c=>c.paras.join(" ")).join(" ");
+  if(!looksMojibake(all)) return res;
+  res.chapters.forEach(c=>{c.title=fixMojibake(c.title);c.paras=c.paras.map(fixMojibake)});
+  res.title=fixMojibake(res.title);
+  return res;
+}
+function repairStored(L){
+  if(!L.custom||L.src==="ko"||L.fixedEnc) return false;
+  const all=L.pages.map(p=>p.lines.map(l=>l[0]).join(" ")).join(" ");
+  L.fixedEnc=true;
+  if(!looksMojibake(all)) return true;
+  L.pages.forEach(p=>{p.label=fixMojibake(p.label||"");p.lines.forEach(l=>{l[0]=fixMojibake(l[0])})});
+  L.title=fixMojibake(L.title);
+  return true;
 }
 
 /* ---------- text → sentences → pages ---------- */
@@ -811,6 +875,7 @@ async function importFile(file){
   try{
     const res=ext==="pdf"?await readPdf(file,say):ext==="epub"?await readEpub(file,say):await readTxt(file);
     say("Splitting into sentences…");
+    repairChapters(res);
     const src=detectLang(res.chapters.map(c=>c.paras.join(" ")).join(" "));
     const pages=toPages(res.chapters,src);
     if(!pages.length) throw new Error("No sentences were found in this file.");
@@ -828,7 +893,8 @@ async function importFile(file){
 
 $("#addform").onsubmit=async e=>{
   e.preventDefault();
-  const aRaw=$("#fEn").value.trim(), bLines=$("#fKo").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  let aRawIn=$("#fEn").value.trim(); if(looksMojibake(aRawIn)) aRawIn=fixMojibake(aRawIn);
+  const aRaw=aRawIn, bLines=$("#fKo").value.split("\n").map(s=>s.trim()).filter(Boolean);
   if(!aRaw){$("#fErr").textContent="Paste some text in the first box.";return;}
   const src=detectLang(aRaw);
   let lines;
@@ -884,6 +950,7 @@ function showNotice(t){const n=$("#nosupport");n.textContent=t;n.hidden=false;}
   syncSpeed(); setMode(state.mode); render();
   await Store.open();
   custom=(await Store.all()).sort((a,b)=>a.id.localeCompare(b.id));
+  for(const L of custom){ if(repairStored(L)) await Store.put(L); }
   const old=prefs.get("sbs.custom",null);
   if(old&&old.length){
     for(const o of old){ if(!custom.some(c=>c.id===o.id)){ const L={id:o.id,title:o.title,ko:"",custom:true,pages:[{label:"",lines:o.lines}],pos:0}; custom.push(L); await Store.put(L);} }
