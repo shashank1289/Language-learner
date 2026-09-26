@@ -66,6 +66,7 @@ header.lesson .del{margin-left:auto;background:none;border:none;color:var(--mute
 .pager button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;font-size:14px}
 .pager .where{text-align:center;color:var(--muted);min-width:0}
 .pager .where input{width:4.2em;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px;font-size:14px;color:var(--ink)}
+.chapsel{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px 6px;font-size:14px;color:var(--ink);max-width:46vw;margin-right:2px}
 .pager .chap{display:block;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw}
 
 .transbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:14px;padding:12px 14px;
@@ -161,7 +162,7 @@ dialog textarea{min-height:120px;resize:vertical;line-height:1.5}
 
   <div class="pager" id="pager" hidden>
     <button id="pgPrev">‹ Previous</button>
-    <div class="where"><span class="chap" id="pgChap"></span>Page <input id="pgInput" type="number" min="1" inputmode="numeric" aria-label="Go to page"> of <span id="pgTotal"></span></div>
+    <div class="where"><span class="chap" id="pgChap"></span><select id="pgChapSel" class="chapsel" hidden aria-label="Jump to chapter"></select>Page <input id="pgInput" type="number" min="1" inputmode="numeric" aria-label="Go to page"> of <span id="pgTotal"></span></div>
     <button id="pgNext">Next ›</button>
   </div>
 
@@ -376,8 +377,20 @@ function renderHeader(){
     const p=L.pos||0;
     $("#pgInput").value=p+1; $("#pgInput").max=L.pages.length;
     $("#pgTotal").textContent=L.pages.length;
-    $("#pgChap").textContent=page(L).label||"";
     $("#pgPrev").disabled=p===0; $("#pgNext").disabled=p>=L.pages.length-1;
+    const sel=$("#pgChapSel");
+    if(L.chapters&&L.chapters.length>1){
+      if(sel.dataset.for!==L.id){
+        sel.innerHTML="";
+        L.chapters.forEach(c=>{const o=document.createElement("option");o.value=c.page;o.textContent=c.title;sel.appendChild(o);});
+        sel.dataset.for=L.id;
+      }
+      let cur=L.chapters[0].page;
+      L.chapters.forEach(c=>{ if(c.page<=p) cur=c.page; });
+      sel.value=String(cur); sel.hidden=false; $("#pgChap").hidden=true;
+    } else {
+      sel.hidden=true; $("#pgChap").hidden=false; $("#pgChap").textContent=page(L).label||"";
+    }
   }
 }
 
@@ -471,6 +484,7 @@ function autoNext(){
   if(missing(L,p)) translatePage(L,p);
   else if(p+1<L.pages.length&&missing(L,p+1)) translatePage(L,p+1);
 }
+$("#pgChapSel").onchange=e=>goPage(parseInt(e.target.value,10));
 $("#pgPrev").onclick=()=>goPage((lesson().pos||0)-1);
 $("#pgNext").onclick=()=>goPage((lesson().pos||0)+1);
 $("#pgInput").onchange=e=>{const n=parseInt(e.target.value,10); if(n) goPage(n-1); else renderHeader();};
@@ -662,6 +676,7 @@ $("#transBtn").onclick=()=>{
 };
 $("#autoT").onchange=e=>{ state.autoT=e.target.checked; savePrefs(); autoNext(); };
 
+const retryCounts=new WeakMap();
 async function translatePage(L,p){
   if(!canTranslate()||translating) return;
   const pg=L.pages[p], t=tgtIdx(L), sIdx=1-t;
@@ -697,6 +712,7 @@ ${todo.map(([i,x])=>i+": "+x).join("\n")}`;
       }
     }catch(e){}
   };
+  let hardFail=false;
   try{
     const text=await geminiTranslate(full,{signal:ctl.signal,
       onRetry:m=>{ if(showing()) $("#transMsg").textContent=m; },
@@ -708,15 +724,23 @@ ${todo.map(([i,x])=>i+": "+x).join("\n")}`;
   }catch(e){
     if(e&&e.text) e.text.split("\n").forEach(apply);
     const c=e&&e.code;
-    if(c==="cancelled"){ transError=""; state.autoT=false; savePrefs(); }
-    else if(c==="bad_key"){ keyBad=true; transError=e.message; }
+    if(c==="cancelled"){ transError=""; state.autoT=false; savePrefs(); hardFail=true; }
+    else if(c==="bad_key"){ keyBad=true; transError=e.message; hardFail=true; }
+    else if(c==="bad_model"){ transError=e.message; hardFail=true; }
     else transError=(e&&e.message)||"Translation stopped before it finished. Press Try again.";
   }finally{
     translating=null;
     if(got) saveLesson(L);
     if(showing()) pg.lines.forEach((_,i)=>fillRow(i));
-    renderTransbar();
-    if(!transError) autoNext();
+    if(!missing(L,p)){
+      retryCounts.delete(pg); renderTransbar(); if(!transError) autoNext();
+    } else if(!hardFail&&canTranslate()){
+      const n=retryCounts.get(pg)||0;
+      if(n<2){
+        retryCounts.set(pg,n+1); transError=""; renderTransbar();
+        setTimeout(()=>{ if(!translating) translatePage(L,p); },1500*(n+1));
+      } else { renderTransbar(); }
+    } else { renderTransbar(); }
   }
 }
 
@@ -781,12 +805,14 @@ function sentences(text,lang="en"){
   return merged.flatMap(splitLong);
 }
 function toPages(chapters,src="en"){
-  const pages=[];
+  const pages=[], marks=[];
   chapters.forEach(ch=>{
     const sents=ch.paras.flatMap(x=>sentences(x,src));
+    if(!sents.length) return;
+    if(ch.title) marks.push({title:ch.title,page:pages.length});
     for(let i=0;i<sents.length;i+=PAGE_SIZE) pages.push({label:ch.title||"",lines:sents.slice(i,i+PAGE_SIZE).map(s=>src==="ko"?["",s]:[s,""])});
   });
-  return pages;
+  return {pages,marks};
 }
 
 /* ---------- file readers ---------- */
@@ -803,19 +829,62 @@ async function readPdf(file,progress){
   const lib=await loadScript(PDFJS+"pdf.min.js","pdfjsLib");
   lib.GlobalWorkerOptions.workerSrc=PDFJS+"pdf.worker.min.js";
   const pdf=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,cMapUrl:PDFJS+"cmaps/",cMapPacked:true}).promise;
-  let text="";
+  const pageLines=[];
   for(let n=1;n<=pdf.numPages;n++){
     progress(`Reading page ${n} of ${pdf.numPages}…`);
     const pg=await pdf.getPage(n); const tc=await pg.getTextContent();
     let t=""; tc.items.forEach(it=>{ if("str" in it){ t+=it.str; t+=it.hasEOL?"\n":(it.str.endsWith(" ")?"":" "); } });
-    t=t.split("\n").filter(l=>!/^\s*(\d{1,4}|page \d+( of \d+)?)\s*$/i.test(l)).join("\n");
-    text+=t+"\n";
+    pageLines.push(t.split("\n").map(l=>l.trim()).filter(l=>l&&!/^\s*(\d{1,4}|page \d+( of \d+)?)\s*$/i.test(l)));
   }
-  text=text.replace(/(\w)-\n(\w)/g,"$1$2");
-  if(text.replace(/\s/g,"").length<40) throw new Error("This PDF has no selectable text. It may be a scan or photos of pages.");
+  const allText=pageLines.map(ls=>ls.join("\n")).join("\n");
+  if(allText.replace(/\s/g,"").length<40) throw new Error("This PDF has no selectable text. It may be a scan or photos of pages.");
   const meta=await pdf.getMetadata().catch(()=>null);
   const title=(meta&&meta.info&&meta.info.Title&&meta.info.Title.trim())||file.name.replace(/\.pdf$/i,"");
-  return {title,chapters:[{title:"",paras:[text]}]};
+  const dehy=s=>s.replace(/(\w)-\n(\w)/g,"$1$2");
+
+  /* Chapter breaks: first try the PDF's own bookmarks (outline). */
+  let marks=[];
+  try{
+    const outline=await pdf.getOutline();
+    if(outline&&outline.length){
+      const flat=[]; const walk=items=>items.forEach(it=>{flat.push(it); if(it.items&&it.items.length) walk(it.items);});
+      walk(outline);
+      for(const it of flat){
+        let dest=it.dest;
+        if(typeof dest==="string") dest=await pdf.getDestination(dest).catch(()=>null);
+        if(!dest||!dest[0]) continue;
+        const idx=await pdf.getPageIndex(dest[0]).catch(()=>null);
+        if(idx==null) continue;
+        const t=(it.title||"").replace(/\s+/g," ").trim().slice(0,60);
+        if(t) marks.push({title:t,page:idx});
+      }
+      marks.sort((a,b)=>a.page-b.page);
+      const seen=new Set(); marks=marks.filter(m=>seen.has(m.page)?false:(seen.add(m.page),true));
+    }
+  }catch(e){}
+
+  /* No usable bookmarks: look for printed headings like "Chapter Three" or "PROLOGUE". */
+  if(marks.length<2){
+    marks=[];
+    const HEAD=/^(chapter|part|book (one|two|three|four|five|six|seven|eight|nine|ten)|prologue|epilogue|introduction|foreword|afterword|author'?s note|preface|acknowledg(e)?ments|appendix)\b.{0,40}$/i;
+    const ROMAN=/^[ivxlcdm]{2,7}\.?$/i;
+    pageLines.forEach((lines,pIdx)=>{
+      lines.forEach(line=>{ if(line.length<=48&&(HEAD.test(line)||ROMAN.test(line))) marks.push({title:line.replace(/\s+/g," ").trim().slice(0,60),page:pIdx}); });
+    });
+    const seen=new Set(); marks=marks.filter(m=>seen.has(m.page)?false:(seen.add(m.page),true));
+  }
+
+  const chapters=[];
+  if(marks.length>=2){
+    if(marks[0].page>0) chapters.push({title:"",paras:[dehy(pageLines.slice(0,marks[0].page).map(l=>l.join("\n")).join("\n"))]});
+    marks.forEach((m,i)=>{
+      const end=i+1<marks.length?marks[i+1].page:pageLines.length;
+      chapters.push({title:m.title,paras:[dehy(pageLines.slice(m.page,end).map(l=>l.join("\n")).join("\n"))]});
+    });
+  } else {
+    chapters.push({title:"",paras:[dehy(allText)]});
+  }
+  return {title,chapters};
 }
 function normPath(p){const out=[];p.split("/").forEach(s=>{if(s===".."){out.pop()}else if(s&&s!=="."){out.push(s)}});return out.join("/")}
 async function readEpub(file,progress){
@@ -877,9 +946,9 @@ async function importFile(file){
     say("Splitting into sentences…");
     repairChapters(res);
     const src=detectLang(res.chapters.map(c=>c.paras.join(" ")).join(" "));
-    const pages=toPages(res.chapters,src);
+    const {pages,marks}=toPages(res.chapters,src);
     if(!pages.length) throw new Error("No sentences were found in this file.");
-    const L={id:"b"+Date.now(),title:res.title.slice(0,80),ko:src==="ko"?"한국어 원문 → English":"",src,custom:true,book:true,pages,pos:0};
+    const L={id:"b"+Date.now(),title:res.title.slice(0,80),ko:src==="ko"?"한국어 원문 → English":"",src,custom:true,book:true,pages,pos:0,chapters:marks.length>1?marks:undefined};
     custom.push(L);
     const ok=await Store.put(L);
     state.lesson=L.id; savePrefs(); dlg.close(); stop(); render(); window.scrollTo(0,0);
